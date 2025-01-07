@@ -1,3 +1,3 @@
-module github.com/dys2p/btcpay
+module github.com/dys2p/go-btcpay
 
 go 1.16
