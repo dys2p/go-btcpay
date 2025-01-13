@@ -10,7 +10,7 @@ Microsoft.EntityFrameworkCore.DbUpdateException: An error occurred while updatin
  ---> Npgsql.PostgresException (0x80004005): 23505: duplicate key value violates unique constraint "PK_AddressInvoices"
 ```
 
-BTCPay Server tries to (deterministically) generate a bitcoin address which he had already created in the past.
+BTCPay Server tries to (deterministically) generate a bitcoin address which it had already created in the past.
 
 1. Rescan the wallet (available in the BTCPay user interface). This will move the cursor to the latest bitcoin address which received a payment.
 2. Run `rescan-addresses`. It will try to generate invoices until it succeeds, moving the cursor along all bitcoin addresses which had been generated after the latest paid one.
