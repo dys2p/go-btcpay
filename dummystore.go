@@ -57,13 +57,14 @@ func (*DummyStore) GetPaymentRequest(id string) (*PaymentRequest, error) {
 func (*DummyStore) GetServerStatus() (*ServerStatus, error) {
 	return &ServerStatus{
 		Version:                 "dummy",
-		SupportedPaymentMethods: []string{"BTC"},
+		SupportedPaymentMethods: []string{"BTC-CHAIN"},
 		FullySynched:            true,
 		SyncStatuses: []SyncStatus{
 			{
-				CryptoCode:  "BTC",
-				ChainHeight: 1000000,
-				SyncHeight:  1000000,
+				PaymentMethodID: "BTC-CHAIN",
+				ChainHeight:     1000000,
+				SyncHeight:      1000000,
+				Available:       true,
 			},
 		},
 	}, nil

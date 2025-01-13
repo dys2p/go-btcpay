@@ -27,12 +27,13 @@ type ServerStatus struct {
 }
 
 type SyncStatus struct {
-	CryptoCode      string `json:"cryptoCode"`
-	ChainHeight     int    `json:"chainHeight"`
-	SyncHeight      int    `json:"syncHeight"`
+	PaymentMethodID string `json:"paymentMethodId"`
 	NodeInformation struct {
 		Headers              int     `json:"headers"`
 		Blocks               int     `json:"blocks"`
 		VerificationProgress float64 `json:"verificationProgress"`
 	} `json:"nodeInformation"`
+	ChainHeight int  `json:"chainHeight"`
+	SyncHeight  int  `json:"syncHeight"`
+	Available   bool `json:"available"`
 }
