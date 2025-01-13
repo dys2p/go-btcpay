@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	"github.com/dys2p/btcpay"
+	"github.com/dys2p/go-btcpay"
 )
 
 func main() {
