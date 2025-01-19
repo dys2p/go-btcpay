@@ -2,6 +2,7 @@ package btcpay
 
 import (
 	"net/http"
+	"time"
 )
 
 type Store interface {
