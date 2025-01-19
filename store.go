@@ -36,4 +36,15 @@ type SyncStatus struct {
 	ChainHeight int  `json:"chainHeight"`
 	SyncHeight  int  `json:"syncHeight"`
 	Available   bool `json:"available"`
+
+	// XMR
+	Summary struct {
+		Synced          bool      `json:"synced"`
+		CurrentHeight   int       `json:"currentHeight"`
+		WalletHeight    int       `json:"walletHeight"`
+		TargetHeight    int       `json:"targetHeight"` // may be zero if node is fully synced
+		UpdatedAt       time.Time `json:"updatedAt"`
+		DaemonAvailable bool      `json:"daemonAvailable"`
+		WalletAvailable bool      `json:"walletAvailable"`
+	} `json:"summary"`
 }
