@@ -20,32 +20,30 @@ type Store interface {
 }
 
 type ServerStatus struct {
+	SyncStatuses            []SyncStatus `json:"syncStatus"`
 	Version                 string       `json:"version"`
 	Onion                   string       `json:"onion"`
 	SupportedPaymentMethods []string     `json:"supportedPaymentMethods"`
 	FullySynched            bool         `json:"fullySynched"`
-	SyncStatuses            []SyncStatus `json:"syncStatus"`
 }
 
 type SyncStatus struct {
-	PaymentMethodID string `json:"paymentMethodId"`
+	ChainHeight     int `json:"chainHeight,omitempty"`
+	SyncHeight      int `json:"syncHeight,omitempty"`
 	NodeInformation struct {
 		Headers              int     `json:"headers"`
 		Blocks               int     `json:"blocks"`
 		VerificationProgress float64 `json:"verificationProgress"`
-	} `json:"nodeInformation"`
-	ChainHeight int  `json:"chainHeight"`
-	SyncHeight  int  `json:"syncHeight"`
-	Available   bool `json:"available"`
-
-	// XMR
-	Summary struct {
+	} `json:"nodeInformation,omitempty"`
+	PaymentMethodID string `json:"paymentMethodId"`
+	Available       bool   `json:"available"`
+	Summary         struct {
 		Synced          bool      `json:"synced"`
 		CurrentHeight   int       `json:"currentHeight"`
 		WalletHeight    int       `json:"walletHeight"`
-		TargetHeight    int       `json:"targetHeight"` // may be zero if node is fully synced
+		TargetHeight    int       `json:"targetHeight"`
 		UpdatedAt       time.Time `json:"updatedAt"`
 		DaemonAvailable bool      `json:"daemonAvailable"`
 		WalletAvailable bool      `json:"walletAvailable"`
-	} `json:"summary"`
+	} `json:"summary,omitempty"`
 }
