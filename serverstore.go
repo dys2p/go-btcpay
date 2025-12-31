@@ -131,43 +131,6 @@ func (s *ServerStore) CreateInvoice(req *InvoiceRequest) (*Invoice, error) {
 	return invoice, json.Unmarshal(body, invoice)
 }
 
-func (s *ServerStore) CreatePaymentRequest(req *PaymentRequestRequest) (*PaymentRequest, error) {
-
-	payload, err := json.Marshal(req)
-	if err != nil {
-		return nil, err
-	}
-
-	resp, err := s.doRequest(http.MethodPost, fmt.Sprintf("stores/%s/payment-requests", s.ID), bytes.NewBuffer(payload))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case http.StatusOK:
-		// ok
-	case http.StatusUnauthorized: // 401, "Unauthorized" should be "Unauthenticated"
-		return nil, ErrUnauthenticated
-	case http.StatusForbidden:
-		return nil, ErrUnauthorized
-	case http.StatusBadRequest:
-		return nil, ErrBadRequest
-	case http.StatusNotFound:
-		return nil, ErrNotFound
-	default:
-		return nil, fmt.Errorf("response status: %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var paymentRequest = &PaymentRequest{}
-	return paymentRequest, json.Unmarshal(body, paymentRequest)
-}
-
 func (s *ServerStore) GetInvoice(id string) (*Invoice, error) {
 
 	resp, err := s.doRequest(http.MethodGet, fmt.Sprintf("stores/%s/invoices/%s", s.ID, id), nil)
@@ -228,38 +191,6 @@ func (s *ServerStore) GetInvoicePaymentMethods(id string) ([]InvoicePaymentMetho
 	return invoice, json.Unmarshal(body, &invoice)
 }
 
-func (s *ServerStore) GetPaymentRequest(id string) (*PaymentRequest, error) {
-
-	resp, err := s.doRequest(http.MethodGet, fmt.Sprintf("stores/%s/payment-requests/%s", s.ID, id), nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	switch resp.StatusCode {
-	case http.StatusOK:
-		// ok
-	case http.StatusUnauthorized: // 401, "Unauthorized" should be "Unauthenticated"
-		return nil, ErrUnauthenticated
-	case http.StatusForbidden:
-		return nil, ErrUnauthorized
-	case http.StatusBadRequest:
-		return nil, ErrBadRequest
-	case http.StatusNotFound:
-		return nil, ErrNotFound
-	default:
-		return nil, fmt.Errorf("response status: %d", resp.StatusCode)
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	var paymentRequest = &PaymentRequest{}
-	return paymentRequest, json.Unmarshal(body, paymentRequest)
-}
-
 // GetServerStatus requires successful authentication, but no specific permissions.
 func (s *ServerStore) GetServerStatus() (*ServerStatus, error) {
 
@@ -303,18 +234,6 @@ func (s *ServerStore) InvoiceCheckoutLinkPreferOnion(id string) string {
 		host = s.HostOnion
 	}
 	return fmt.Sprintf("%s/i/%s", host, id)
-}
-
-func (s *ServerStore) PaymentRequestLink(id string) string {
-	return fmt.Sprintf("%s/payment-requests/%s", s.Host, id)
-}
-
-func (s *ServerStore) PaymentRequestLinkPreferOnion(id string) string {
-	host := s.Host
-	if s.HostOnion != "" {
-		host = s.HostOnion
-	}
-	return fmt.Sprintf("%s/payment-requests/%s", host, id)
 }
 
 func (s *ServerStore) ProcessWebhook(r *http.Request) (*InvoiceEvent, error) {

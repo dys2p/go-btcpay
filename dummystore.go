@@ -37,10 +37,6 @@ func (s *DummyStore) CreateInvoice(req *InvoiceRequest) (*Invoice, error) {
 	return invoice, nil
 }
 
-func (*DummyStore) CreatePaymentRequest(req *PaymentRequestRequest) (*PaymentRequest, error) {
-	return nil, errors.New("not implemented")
-}
-
 func (s *DummyStore) GetInvoice(id string) (*Invoice, error) {
 	invoice, ok := s.Invoices[id]
 	if ok {
@@ -48,10 +44,6 @@ func (s *DummyStore) GetInvoice(id string) (*Invoice, error) {
 	} else {
 		return nil, errors.New("not found")
 	}
-}
-
-func (*DummyStore) GetPaymentRequest(id string) (*PaymentRequest, error) {
-	return nil, errors.New("not implemented")
 }
 
 func (*DummyStore) GetServerStatus() (*ServerStatus, error) {
@@ -75,14 +67,6 @@ func (*DummyStore) InvoiceCheckoutLink(id string) string {
 }
 
 func (*DummyStore) InvoiceCheckoutLinkPreferOnion(id string) string {
-	return id
-}
-
-func (*DummyStore) PaymentRequestLink(id string) string {
-	return id
-}
-
-func (*DummyStore) PaymentRequestLinkPreferOnion(id string) string {
 	return id
 }
 

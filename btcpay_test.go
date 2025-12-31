@@ -76,32 +76,3 @@ func TestInvoice(t *testing.T) {
 		t.Fail()
 	}
 }
-
-func TestPaymentRequest(t *testing.T) {
-
-	store, err := Load("store.json")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	request := &PaymentRequestRequest{
-		Amount:   1.23,
-		Currency: "EUR",
-		Title:    "Test payment request",
-	}
-	request.SetExpiryDays(7)
-
-	created, err := store.CreatePaymentRequest(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := store.GetPaymentRequest(created.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if got.Amount != 1.23 || got.Currency != "EUR" {
-		t.Fail()
-	}
-}
