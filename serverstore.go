@@ -34,29 +34,13 @@ type ServerStore struct {
 // Load unmarshals a json config file into a ServerStore.
 // If the file doesn't exist, it is created and an error is returned.
 func Load(jsonPath string) (*ServerStore, error) {
-	var store = &ServerStore{}
 	data, err := os.ReadFile(jsonPath)
-	switch {
-	case err == nil:
-		return store, json.Unmarshal(data, store)
-	case os.IsNotExist(err):
-		return nil, Create(jsonPath)
-	default:
+	if err != nil {
 		return nil, err
 	}
-}
 
-// Create creates an empty json config file with empty values and chmod 600, so someone can fill in easily.
-// Create always returns an error.
-func Create(jsonPath string) error {
-	data, err := json.Marshal(&ServerStore{})
-	if err != nil {
-		return err
-	}
-	if err := os.WriteFile(jsonPath, data, 0600); err != nil {
-		return err
-	}
-	return fmt.Errorf("created empty config file: %s", jsonPath)
+	var store = &ServerStore{}
+	return store, json.Unmarshal(data, store)
 }
 
 func (s *ServerStore) doRequest(method string, path string, body io.Reader) (*http.Response, error) {
