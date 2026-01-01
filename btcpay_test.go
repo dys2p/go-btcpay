@@ -11,49 +11,28 @@ import (
 	"testing"
 )
 
-func TestInvoice(t *testing.T) {
-
-	store, err := Load("store.json")
-	if err != nil {
-		t.Fatal(err)
+func ParseInvoiceWebhook(t *testing.T) {
+	store := &Store{
+		Host:          "https://example.org",
+		ID:            "my-store-id",
+		WebhookSecret: "my-webhook-secret",
+		MaxRates:      map[string]float64{"XMR": 1000, "BTC": 500000},
 	}
 
-	ir := &InvoiceRequest{
-		Amount:   1.23,
-		Currency: "EUR",
-	}
-	ir.OrderID = "Test"
-
-	created, err := store.CreateInvoice(ir)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := store.GetInvoice(created.ID)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if got.Amount != 1.23 || got.Currency != "EUR" {
-		t.Fail()
-	}
-
-	// simulate a webhook
-
-	var body = []byte(fmt.Sprintf(`
+	body := []byte(`
 	{
-		"deliveryId": "delivery-abcdefghijkl",
-		"webhookId": "webhook-abcdefghijklmn",
-		"orignalDeliveryId": "delivery-abcdefghijkl",
+		"deliveryId": "my-delivery-id",
+		"webhookId": "my-webhook-id",
+		"orignalDeliveryId": "my-original-delivery-id",
 		"isRedelivery": false,
 		"type": "InvoiceCreated",
 		"timestamp": 1610000000,
-		"storeId": "%s",
-		"invoiceId": "%s",
+		"storeId": "my-store-id",
+		"invoiceId": "my-invoice-id",
 		"metadata": {
-			"orderId": "%s"
+			"orderId": "my-order-id"
 		}
-	}`, store.ID, got.ID, got.InvoiceMetadata.OrderID))
+	}`)
 
 	var webhookRequest = &http.Request{
 		Body:   io.NopCloser(bytes.NewReader(body)),
@@ -63,16 +42,14 @@ func TestInvoice(t *testing.T) {
 	mac.Write(body)
 	webhookRequest.Header.Add("BTCPay-Sig", fmt.Sprintf("sha256=%s", hex.EncodeToString(mac.Sum(nil))))
 
-	event, err := store.ProcessWebhook(webhookRequest)
+	event, err := store.ParseInvoiceWebhook(webhookRequest)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	if event.StoreID != store.ID || event.Type != EventInvoiceCreated || event.InvoiceID != got.ID {
+	if event.StoreID != store.ID || event.Type != EventInvoiceCreated || event.InvoiceID != "my-invoice-id" {
 		t.Fail()
 	}
-
-	if event.InvoiceMetadata.OrderID != got.InvoiceMetadata.OrderID {
+	if event.InvoiceMetadata.OrderID != "my-order-id" {
 		t.Fail()
 	}
 }

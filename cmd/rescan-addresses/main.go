@@ -10,9 +10,9 @@ import (
 
 func main() {
 
-	store, err := btcpay.Load("store.json")
+	store, err := btcpay.LoadConfig("store.json")
 	if err != nil {
-		log.Printf("error loading btcpay store: %v", err)
+		log.Printf("error loading store configuration: %v", err)
 		return
 	}
 
