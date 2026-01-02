@@ -11,7 +11,9 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"slices"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -62,17 +64,17 @@ type Store struct {
 }
 
 // LoadConfig unmarshals a json config file into a Store.
-func LoadConfig(jsonPath string) (*Store, error) {
+func LoadConfig(jsonPath string) (Store, error) {
 	data, err := os.ReadFile(jsonPath)
 	if err != nil {
-		return nil, err
+		return Store{}, err
 	}
 
-	var store = &Store{}
-	return store, json.Unmarshal(data, store)
+	var store Store
+	return store, json.Unmarshal(data, &store)
 }
 
-func (s *Store) doRequest(method string, path string, body io.Reader) (*http.Response, error) {
+func (s Store) doRequest(method string, path string, body io.Reader) (*http.Response, error) {
 	if s.Host == "" {
 		return nil, errors.New("missing host in btcpay configuration")
 	}
@@ -100,7 +102,7 @@ func (s *Store) doRequest(method string, path string, body io.Reader) (*http.Res
 
 // CheckInvoiceAuth checks authentication and authorization by performing bogus CreateInvoice and GetInvoice calls and checking the result.
 // It returns ErrUnauthenticated, ErrUnauthorized or nil.
-func (s *Store) CheckInvoiceAuth() error {
+func (s Store) CheckInvoiceAuth() error {
 	if _, err := s.CreateInvoice(nil); err != ErrBadRequest {
 		return err
 	}
@@ -114,7 +116,7 @@ func (s *Store) CheckInvoiceAuth() error {
 // It is recommended to set InvoiceRequest.InvoiceMetadata.OrderID in order to
 // identify the order in both a webhook and in your bookkeeping.
 // Alternatively you can store the btcpay invoice ID in your order database.
-func (s *Store) CreateInvoice(req *InvoiceRequest) (*Invoice, error) {
+func (s Store) CreateInvoice(req *InvoiceRequest) (*Invoice, error) {
 	payload, err := json.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -150,7 +152,7 @@ func (s *Store) CreateInvoice(req *InvoiceRequest) (*Invoice, error) {
 	return invoice, json.Unmarshal(body, invoice)
 }
 
-func (s *Store) GetInvoice(id string) (*Invoice, error) {
+func (s Store) GetInvoice(id string) (*Invoice, error) {
 	resp, err := s.doRequest(http.MethodGet, fmt.Sprintf("stores/%s/invoices/%s", s.ID, id), nil)
 	if err != nil {
 		return nil, err
@@ -181,7 +183,7 @@ func (s *Store) GetInvoice(id string) (*Invoice, error) {
 	return invoice, json.Unmarshal(body, invoice)
 }
 
-func (s *Store) GetInvoicePaymentMethods(id string) ([]InvoicePaymentMethod, error) {
+func (s Store) GetInvoicePaymentMethods(id string) ([]InvoicePaymentMethod, error) {
 	resp, err := s.doRequest(http.MethodGet, fmt.Sprintf("stores/%s/invoices/%s/payment-methods", s.ID, id), nil)
 	if err != nil {
 		return nil, err
@@ -209,7 +211,7 @@ func (s *Store) GetInvoicePaymentMethods(id string) ([]InvoicePaymentMethod, err
 }
 
 // GetServerStatus requires successful authentication, but no specific permissions.
-func (s *Store) GetServerStatus() (*ServerStatus, error) {
+func (s Store) GetServerStatus() (*ServerStatus, error) {
 	resp, err := s.doRequest(http.MethodGet, "server/info", nil)
 	if err != nil {
 		return nil, err
@@ -241,7 +243,7 @@ func (s *Store) GetServerStatus() (*ServerStatus, error) {
 }
 
 // like invoice.CheckoutLink but with onion support
-func (s *Store) InvoiceCheckoutLink(id string, preferOnion bool) string {
+func (s Store) InvoiceCheckoutLink(id string, preferOnion bool) string {
 	host := s.Host
 	if preferOnion && s.HostOnion != "" {
 		host = s.HostOnion
@@ -249,7 +251,7 @@ func (s *Store) InvoiceCheckoutLink(id string, preferOnion bool) string {
 	return fmt.Sprintf("%s/i/%s", host, id)
 }
 
-func (s *Store) ParseInvoiceWebhook(r *http.Request) (*InvoiceEvent, error) {
+func (s Store) ParseInvoiceWebhook(r *http.Request) (*InvoiceEvent, error) {
 	var messageMAC = []byte(strings.TrimPrefix(r.Header.Get("BTCPay-Sig"), "sha256="))
 	if len(messageMAC) == 0 {
 		return nil, errors.New("BTCPay-Sig header missing")
@@ -291,4 +293,50 @@ func (s *Store) ParseInvoiceWebhook(r *http.Request) (*InvoiceEvent, error) {
 	}
 
 	return event, nil
+}
+
+// StatusDaemon starts a goroutine which fetches the sync status data every 10 seconds and caches it, and returns a getter function.
+func (s Store) StatusDaemon() func() []StatusItem {
+	var status []StatusItem
+	var lock sync.RWMutex
+
+	go func() {
+		for ; true; <-time.Tick(10 * time.Second) {
+			serverStatus, err := s.GetServerStatus()
+			if err != nil {
+				continue
+			}
+
+			var s []StatusItem
+			for _, syncStatus := range serverStatus.SyncStatuses {
+				switch syncStatus.PaymentMethodID {
+				case "BTC-CHAIN":
+					s = append(s, StatusItem{
+						Name:   "BTC",
+						Synced: syncStatus.Available && syncStatus.ChainHeight == syncStatus.SyncHeight,
+					})
+				case "XMR-CHAIN":
+					s = append(s, StatusItem{
+						Name:   "XMR",
+						Synced: syncStatus.Available && syncStatus.Summary.Synced && syncStatus.Summary.DaemonAvailable && syncStatus.Summary.WalletAvailable,
+					})
+				}
+			}
+
+			lock.Lock()
+			status = s
+			lock.Unlock()
+		}
+	}()
+
+	return func() []StatusItem {
+		lock.RLock()
+		defer lock.RUnlock()
+		return slices.Clone(status) // don't return original slice
+	}
+}
+
+type StatusItem struct {
+	Name   string
+	Synced bool // not just synced but also daemon running, wallet available, etc.
 }
