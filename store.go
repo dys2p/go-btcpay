@@ -18,10 +18,11 @@ import (
 )
 
 var (
-	ErrUnauthenticated = errors.New("unauthenticated")
-	ErrUnauthorized    = errors.New("unauthorized")
 	ErrBadRequest      = errors.New("bad request")
 	ErrNotFound        = errors.New("not found")
+	ErrUnauthenticated = errors.New("unauthenticated")
+	ErrUnauthorized    = errors.New("unauthorized")
+	ErrWebhookSig      = errors.New("BTCPay-Sig header missing or HMAC mismatch") // may be triggered without authentication
 )
 
 type ServerStatus struct {
@@ -254,7 +255,7 @@ func (s Store) InvoiceCheckoutLink(id string, preferOnion bool) string {
 func (s Store) ParseInvoiceWebhook(r *http.Request) (*InvoiceEvent, error) {
 	var messageMAC = []byte(strings.TrimPrefix(r.Header.Get("BTCPay-Sig"), "sha256="))
 	if len(messageMAC) == 0 {
-		return nil, errors.New("BTCPay-Sig header missing")
+		return nil, ErrWebhookSig
 	}
 
 	body, err := io.ReadAll(r.Body)
@@ -262,11 +263,9 @@ func (s Store) ParseInvoiceWebhook(r *http.Request) (*InvoiceEvent, error) {
 		return nil, fmt.Errorf("reading body: %w", err)
 	}
 
-	var mac = hmac.New(sha256.New, []byte(s.WebhookSecret))
-	mac.Write(body)
-	var expectedMAC = []byte(hex.EncodeToString(mac.Sum(nil)))
+	var expectedMAC = []byte(hex.EncodeToString(hmac.New(sha256.New, []byte(s.WebhookSecret)).Sum(body)))
 	if !hmac.Equal(messageMAC, expectedMAC) {
-		return nil, fmt.Errorf("HMAC mismatch, got %s, want %s", messageMAC, expectedMAC)
+		return nil, ErrWebhookSig // don't leak expectedMAC!
 	}
 
 	var event = &InvoiceEvent{}
