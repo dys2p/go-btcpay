@@ -264,7 +264,9 @@ func (s Store) ParseInvoiceWebhook(r *http.Request) (*InvoiceEvent, error) {
 		return nil, fmt.Errorf("reading body: %w", err)
 	}
 
-	var expectedMAC = []byte(hex.EncodeToString(hmac.New(sha256.New, []byte(s.WebhookSecret)).Sum(body)))
+	var mac = hmac.New(sha256.New, []byte(s.WebhookSecret))
+	mac.Write(body)
+	var expectedMAC = []byte(hex.EncodeToString(mac.Sum(nil)))
 	if !hmac.Equal(messageMAC, expectedMAC) {
 		return nil, ErrWebhookSig // don't leak expectedMAC!
 	}
