@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"os"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -278,16 +279,23 @@ func (s Store) ParseInvoiceWebhook(r *http.Request) (*InvoiceEvent, error) {
 		return nil, fmt.Errorf("invoice store ID %s does not match selected store ID %s", event.StoreID, s.ID)
 	}
 
-	// mitigate invalid rates
-	if len(s.MaxRates) > 0 {
-		paymentMethods, err := s.GetInvoicePaymentMethods(event.InvoiceID)
-		if err != nil {
-			return nil, fmt.Errorf("getting payment methods from invoice: %w", err)
+	// fetch invoice payment method details (required for Event.Rate and for MaxRates check)
+	paymentMethods, err := s.GetInvoicePaymentMethods(event.InvoiceID)
+	if err != nil {
+		return nil, fmt.Errorf("getting payment methods from invoice: %w", err)
+	}
+
+	// set Event.Rate
+	for _, m := range paymentMethods {
+		if m.PaymentMethodID == event.PaymentMethodID {
+			event.Rate, _ = strconv.ParseFloat(m.Rate, 64)
 		}
-		for cryptoCode, maxRate := range s.MaxRates {
-			if err := ValidateRate(paymentMethods, cryptoCode, maxRate); err != nil {
-				return nil, fmt.Errorf("validating rate: %w", err)
-			}
+	}
+
+	// mitigate invalid rates
+	for currency, maxRate := range s.MaxRates {
+		if err := ValidateRate(paymentMethods, currency, maxRate); err != nil {
+			return nil, fmt.Errorf("validating rate: %w", err)
 		}
 	}
 

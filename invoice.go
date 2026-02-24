@@ -56,8 +56,8 @@ type InvoiceCheckout struct {
 }
 
 type InvoicePaymentMethod struct {
-	PaymentMethod     string `json:"paymentMethod"` // example: "XMR"
-	CryptoCode        string `json:"cryptoCode"`    // example: "XMR"
+	PaymentMethodID   string `json:"paymentMethodId"` // example: "XMR-CHAIN"
+	Currency          string `json:"currency"`        // example: "XMR"
 	Destination       string `json:"destination"`
 	PaymentLink       string `json:"paymentLink"`
 	Rate              string `json:"rate"`              // example: "122.7738548555"
@@ -65,7 +65,7 @@ type InvoicePaymentMethod struct {
 	TotalPaid         string `json:"totalPaid"`         // Total invoice payment, converted into this currency. This is greater than zero even if there is no payment in this crypto. Be careful!
 	Due               string `json:"due"`               // example: "0"
 	Amount            string `json:"amount"`            // Some amount, converted into this currency. This is greater than zero even if there is no payment in this crypto. Be careful!
-	NetworkFee        string `json:"networkFee"`
+	PaymentMethodFee  string `json:"paymentMethodFee"`
 	Payments          []struct {
 		ID           string `json:"id"`
 		ReceivedDate int    `json:"receivedDate"` // unix timestamp
@@ -76,21 +76,24 @@ type InvoicePaymentMethod struct {
 	} `json:"payments"`
 	Activated      bool `json:"activated"`
 	AdditionalData struct {
-		ProvidedComment          string `json:"providedComment"`
-		ConsumedLightningAddress string `json:"consumedLightningAddress"`
+		KeyPath              string `json:"keyPath"`
+		PayjoinEnabled       bool   `json:"payjoinEnabled"`
+		AccountDerivation    string `json:"accountDerivation"`
+		RecommendedFeeRate   string `json:"recommendedFeeRate"`
+		PaymentMethodFeeRate string `json:"paymentMethodFeeRate"`
 	} `json:"additionalData"`
 }
 
-// ValidateRates returns an error if the exchange rate for the given cryptoCode is above the max rate.
-func ValidateRate(methods []InvoicePaymentMethod, cryptoCode string, maxRate float64) error {
+// ValidateRates returns an error if the exchange rate for the given currency is above the max rate.
+func ValidateRate(methods []InvoicePaymentMethod, currency string, maxRate float64) error {
 	for _, method := range methods {
-		if method.CryptoCode == cryptoCode {
+		if method.Currency == currency {
 			rate, err := strconv.ParseFloat(method.Rate, 64)
 			if err != nil {
 				return err
 			}
 			if rate > maxRate {
-				return fmt.Errorf("%s rate %.2f exceeds max rate %.2f", method.CryptoCode, rate, maxRate)
+				return fmt.Errorf("%s rate %.2f exceeds max rate %.2f", method.Currency, rate, maxRate)
 			}
 		}
 	}

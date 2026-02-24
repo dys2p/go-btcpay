@@ -43,7 +43,7 @@ type InvoiceEvent struct {
 	Payment         struct { // details about the payment
 		ID           string        `json:"id"`           // a unique identifier for this payment
 		ReceivedDate int           `json:"receivedDate"` // the date the payment was recorded
-		Value        string        `json:"value"`        // the value of the payment
+		Value        string        `json:"value"`        // the value of the payment (in crypto currency)
 		Fee          string        `json:"fee"`          // the fee paid for the payment
 		Status       PaymentStatus `json:"status"`       // the status of the payment
 		Destination  string        `json:"destination"`  // the destination the payment was made to
@@ -54,4 +54,7 @@ type InvoiceEvent struct {
 
 	// InvoiceProcessing and InvoiceSettled only
 	OverPaid bool `json:"overPaid"`
+
+	// fetched by func ParseInvoiceWebhook
+	Rate float64 // example: 64392.23
 }
