@@ -79,8 +79,8 @@ type InvoicePaymentMethod struct {
 		KeyPath              string `json:"keyPath"`
 		PayjoinEnabled       bool   `json:"payjoinEnabled"`
 		AccountDerivation    string `json:"accountDerivation"`
-		RecommendedFeeRate   string `json:"recommendedFeeRate"`
-		PaymentMethodFeeRate string `json:"paymentMethodFeeRate"`
+		RecommendedFeeRate   any    `json:"recommendedFeeRate"`   // docs say it's a string, but BTCPay Server v2.3.4 returns a number here
+		PaymentMethodFeeRate any    `json:"paymentMethodFeeRate"` // docs say it's a string, but BTCPay Server v2.3.4 returns a number here
 	} `json:"additionalData"`
 }
 
